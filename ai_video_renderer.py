@@ -1,7 +1,7 @@
 
 import json
 import subprocess
-import tempfile
+import time
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
@@ -14,15 +14,30 @@ MUSIC = BASE / "assets" / "music" / "background.mp3"
 CAPTIONS = OUTPUT / "captions.ass"
 FINAL = OUTPUT / "ai_documentary.mp4"
 
-# Video settings
+# =====================================
+# VIDEO QUALITY
+# =====================================
+
 WIDTH = 1920
 HEIGHT = 1080
 FPS = 30
 
-# Music settings
+PRESET = "slow"
+CRF = 17
+
+MIN_WIDTH = 1920
+MIN_HEIGHT = 1080
+
+# =====================================
+# AUDIO SETTINGS
+# =====================================
+
 MUSIC_VOLUME = 0.08
 MUSIC_FADE_IN = 1.0
 MUSIC_FADE_OUT = 2.0
+
+AUDIO_BITRATE = "320k"
+AUDIO_SAMPLE_RATE = 48000
 
 
 def run(command):
@@ -33,72 +48,82 @@ def run(command):
     )
 
 
-def duration(path):
+def probe(path):
     result = subprocess.run(
         [
             "ffprobe",
             "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1",
+            "-show_streams",
+            "-show_format",
+            "-of", "json",
             str(path)
         ],
         capture_output=True,
         text=True,
         check=True
     )
-    return float(result.stdout.strip())
+
+    return json.loads(result.stdout)
 
 
-def render_scene(source, seconds, destination):
-    if source is None:
-        inputs = [
-            "-f", "lavfi",
-            "-i",
-            f"color=c=0x101820:s={WIDTH}x{HEIGHT}:r={FPS}"
-        ]
-        video_filter = "format=yuv420p"
-    else:
-        inputs = [
-            "-stream_loop", "-1",
-            "-i", str(source)
-        ]
-        video_filter = (
-            f"scale={WIDTH}:{HEIGHT}:"
-            "force_original_aspect_ratio=increase,"
-            f"crop={WIDTH}:{HEIGHT},"
-            "setsar=1,"
-            f"fps={FPS},"
-            "format=yuv420p"
+def duration(path):
+    return float(
+        probe(path)["format"]["duration"]
+    )
+
+
+def resolution(path):
+    data = probe(path)
+
+    for stream in data["streams"]:
+        if stream.get("codec_type") == "video":
+            return (
+                int(stream.get("width", 0)),
+                int(stream.get("height", 0))
+            )
+
+    return 0, 0
+
+
+def validate_footage(filename):
+    if not filename:
+        return None
+
+    path = (FOOTAGE / filename).resolve()
+
+    if path.parent != FOOTAGE.resolve():
+        print(f"Rejected unsafe path: {filename}")
+        return None
+
+    if not path.is_file():
+        print(f"Missing footage: {filename}")
+        return None
+
+    width, height = resolution(path)
+
+    if width < MIN_WIDTH or height < MIN_HEIGHT:
+        print(
+            f"REJECTED: {filename} "
+            f"({width}x{height}) below 1080p"
         )
+        return None
 
-    frame_count = max(1, round(seconds * FPS))
+    print(
+        f"Accepted: {filename} "
+        f"({width}x{height})"
+    )
 
-    run([
-        "ffmpeg", "-y",
-        "-hide_banner",
-        "-loglevel", "error",
-        *inputs,
-        "-map", "0:v:0",
-        "-vf", video_filter,
-        "-frames:v", str(frame_count),
-        "-an",
-        "-c:v", "libx264",
-        "-preset", "veryfast",
-        "-crf", "23",
-        "-r", str(FPS),
-        "-pix_fmt", "yuv420p",
-        str(destination)
-    ])
+    return path
 
 
 def main():
+    started = time.time()
+
     OUTPUT.mkdir(parents=True, exist_ok=True)
 
     for path in (PLAN, AUDIO, MUSIC, CAPTIONS):
         if not path.is_file():
-            raise FileNotFoundError(
-                f"Missing required file: {path}"
-            )
+            raise FileNotFoundError(path)
 
     scenes = json.loads(
         PLAN.read_text(encoding="utf-8")
@@ -107,13 +132,11 @@ def main():
     if not scenes:
         raise RuntimeError("Scene plan is empty.")
 
-    scenes.sort(key=lambda x: float(x["start"]))
-    audio_length = duration(AUDIO)
+    scenes.sort(
+        key=lambda scene: float(scene["start"])
+    )
 
-    print(f"Planned scenes: {len(scenes)}")
-    print(f"Narration duration: {audio_length:.2f}s")
-    print(f"Music: {MUSIC.name}")
-    print("Caption style: ASS word highlighting")
+    audio_length = duration(AUDIO)
 
     boundaries = [0.0]
 
@@ -122,125 +145,224 @@ def main():
 
         if not boundaries[-1] < start < audio_length:
             raise ValueError(
-                "Invalid or overlapping scene start times."
+                "Invalid scene boundaries."
             )
 
         boundaries.append(start)
 
     boundaries.append(audio_length)
 
-    with tempfile.TemporaryDirectory(
-        dir=OUTPUT,
-        prefix="ai_render_"
-    ) as folder:
+    print("=" * 55)
+    print("YOUTUBE AI - HIGH QUALITY RENDERER")
+    print("=" * 55)
+    print(f"Scenes: {len(scenes)}")
+    print(f"Duration: {audio_length:.2f} seconds")
+    print(f"Resolution: {WIDTH}x{HEIGHT}")
+    print(f"FPS: {FPS}")
+    print(f"Preset: {PRESET}")
+    print(f"CRF: {CRF}")
 
-        temp = Path(folder)
-        rendered = []
+    inputs = []
+    filters = []
 
-        # Render each scene according to the AI plan
-        for index, scene in enumerate(scenes):
-            length = boundaries[index + 1] - boundaries[index]
+    # =====================================
+    # BUILD VIDEO INPUTS
+    # =====================================
 
-            if length <= 0:
-                raise ValueError("Invalid scene duration.")
+    for index, scene in enumerate(scenes):
+        seconds = boundaries[index + 1] - boundaries[index]
 
-            filename = scene.get("filename")
-            source = FOOTAGE / filename if filename else None
+        if seconds <= 0:
+            raise ValueError(
+                f"Invalid scene duration: {index + 1}"
+            )
 
-            if source is not None and not source.is_file():
-                print(f"Footage missing: {filename}")
-                source = None
-
-            if source is None:
-                print(f"Scene {index + 1}: Dark fallback")
-            else:
-                print(f"Scene {index + 1}: {source.name}")
-
-            destination = temp / f"scene_{index:04d}.mp4"
-
-            render_scene(source, length, destination)
-            rendered.append(destination)
-
-        # Combine the individual scenes
-        concat_file = temp / "concat.txt"
-        concat_file.write_text(
-            "\n".join(
-                f"file '{path.as_posix()}'"
-                for path in rendered
-            ),
-            encoding="utf-8"
+        source = validate_footage(
+            scene.get("filename")
         )
 
-        combined = temp / "combined.mp4"
+        if source is None:
+            print(
+                f"Scene {index + 1}: Dark fallback"
+            )
 
-        print("Combining scenes...")
+            inputs.extend([
+                "-f", "lavfi",
+                "-i",
+                (
+                    "color=c=0x101820:"
+                    f"s={WIDTH}x{HEIGHT}:r={FPS}"
+                )
+            ])
 
-        run([
-            "ffmpeg", "-y",
-            "-hide_banner", "-loglevel", "error",
-            "-f", "concat",
-            "-safe", "0",
-            "-i", str(concat_file),
-            "-c", "copy",
-            str(combined)
-        ])
+            video_filter = (
+                f"[{index}:v]"
+                f"fps={FPS},"
+                f"trim=duration={seconds:.6f},"
+                "setpts=PTS-STARTPTS,"
+                "format=yuv420p"
+                f"[v{index}]"
+            )
 
-        # Background music settings
-        fade_in = min(MUSIC_FADE_IN, audio_length / 3)
-        fade_out = min(MUSIC_FADE_OUT, audio_length / 3)
-        fade_start = max(0, audio_length - fade_out)
+        else:
+            print(
+                f"Scene {index + 1}: "
+                f"{source.name}"
+            )
 
-        audio_filter = (
-            "[1:a]volume=1.0[narration];"
-            "[2:a]"
-            f"volume={MUSIC_VOLUME},"
-            f"afade=t=in:st=0:d={fade_in:.3f},"
-            f"afade=t=out:st={fade_start:.3f}:d={fade_out:.3f}"
-            "[music];"
-            "[narration][music]"
-            "amix=inputs=2:duration=first:"
-            "dropout_transition=0:normalize=0[mixed];"
-            "[mixed]alimiter=limit=0.95[aout]"
+            inputs.extend([
+                "-stream_loop", "-1",
+                "-i", str(source)
+            ])
+
+            video_filter = (
+                f"[{index}:v]"
+                f"fps={FPS},"
+                f"scale={WIDTH}:{HEIGHT}:"
+                "flags=lanczos:"
+                "force_original_aspect_ratio=increase,"
+                f"crop={WIDTH}:{HEIGHT},"
+                "setsar=1,"
+                f"trim=duration={seconds:.6f},"
+                "setpts=PTS-STARTPTS,"
+                "format=yuv420p"
+                f"[v{index}]"
+            )
+
+        filters.append(video_filter)
+
+    # =====================================
+    # CONCATENATE VIDEO SCENES
+    # =====================================
+
+    concat_inputs = "".join(
+        f"[v{i}]" for i in range(len(scenes))
+    )
+
+    filters.append(
+        f"{concat_inputs}"
+        f"concat=n={len(scenes)}:v=1:a=0,"
+        "ass=filename='output/captions.ass',"
+        "format=yuv420p"
+        "[videoout]"
+    )
+
+    # =====================================
+    # MIX NARRATION AND MUSIC
+    # =====================================
+
+    narration_index = len(scenes)
+    music_index = narration_index + 1
+
+    fade_in = min(
+        MUSIC_FADE_IN,
+        audio_length / 3
+    )
+
+    fade_out = min(
+        MUSIC_FADE_OUT,
+        audio_length / 3
+    )
+
+    fade_start = max(
+        0,
+        audio_length - fade_out
+    )
+
+    filters.append(
+        f"[{narration_index}:a]"
+        f"aresample={AUDIO_SAMPLE_RATE},"
+        "volume=1.0,"
+        "asetpts=PTS-STARTPTS"
+        "[narration]"
+    )
+
+    filters.append(
+        f"[{music_index}:a]"
+        f"aresample={AUDIO_SAMPLE_RATE},"
+        f"volume={MUSIC_VOLUME},"
+        "asetpts=PTS-STARTPTS,"
+        f"afade=t=in:st=0:d={fade_in:.3f},"
+        f"afade=t=out:st={fade_start:.3f}:d={fade_out:.3f}"
+        "[music]"
+    )
+
+    filters.append(
+        "[narration][music]"
+        "amix=inputs=2:"
+        "duration=first:"
+        "dropout_transition=0:"
+        "normalize=0,"
+        "alimiter=limit=0.95"
+        "[audioout]"
+    )
+
+    filter_complex = ";".join(filters)
+
+    # =====================================
+    # FINAL SINGLE-PASS RENDER
+    # =====================================
+
+    command = [
+        "ffmpeg",
+        "-y",
+        "-hide_banner",
+        "-loglevel", "warning",
+
+        *inputs,
+
+        "-i", str(AUDIO),
+
+        "-stream_loop", "-1",
+        "-i", str(MUSIC),
+
+        "-filter_complex",
+        filter_complex,
+
+        "-map", "[videoout]",
+        "-map", "[audioout]",
+
+        "-c:v", "libx264",
+        "-preset", PRESET,
+        "-crf", str(CRF),
+        "-pix_fmt", "yuv420p",
+        "-r", str(FPS),
+
+        "-c:a", "aac",
+        "-b:a", AUDIO_BITRATE,
+        "-ar", str(AUDIO_SAMPLE_RATE),
+
+        "-t", f"{audio_length:.3f}",
+        "-movflags", "+faststart",
+
+        str(FINAL)
+    ]
+
+    print("\nStarting high-quality render...")
+
+    run(command)
+
+    if not FINAL.is_file():
+        raise RuntimeError(
+            "FFmpeg did not create the output."
         )
 
-        print("Rendering narration, music and captions...")
+    width, height = resolution(FINAL)
+    elapsed = time.time() - started
 
-        run([
-            "ffmpeg", "-y",
-            "-hide_banner", "-loglevel", "error",
-
-            "-i", str(combined),
-            "-i", str(AUDIO),
-
-            "-stream_loop", "-1",
-            "-i", str(MUSIC),
-
-            "-filter_complex", audio_filter,
-
-            "-map", "0:v:0",
-            "-map", "[aout]",
-
-            "-vf", "ass=output/captions.ass",
-
-            "-c:v", "libx264",
-            "-preset", "veryfast",
-            "-crf", "22",
-            "-pix_fmt", "yuv420p",
-
-            "-c:a", "aac",
-            "-b:a", "192k",
-
-            "-t", f"{audio_length:.3f}",
-            "-movflags", "+faststart",
-
-            str(FINAL)
-        ])
-
-    print("\nAI DOCUMENTARY RENDERED!")
-    print(f"Video: {FINAL}")
+    print("\n" + "=" * 55)
+    print("HIGH QUALITY VIDEO RENDERED SUCCESSFULLY")
+    print("=" * 55)
+    print(f"Output: {FINAL}")
+    print(f"Resolution: {width}x{height}")
+    print(f"Time: {elapsed / 60:.2f} minutes")
+    print(
+        f"File size: "
+        f"{FINAL.stat().st_size / (1024**2):.1f} MB"
+    )
     print("Narration: Included")
     print("Music: Included")
-    print("Highlighted captions: Included")
+    print("Animated captions: Included")
 
 
 if __name__ == "__main__":

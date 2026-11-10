@@ -4,9 +4,12 @@
     "id": 145481,
     "page_url": "https://pixabay.com/videos/id-145481/",
     "creator": "Engin_Akyurt",
-    "tags": "candle, none, birthday, celebration, burning, fire, light, culture, traditional, cake, fun, happiness, anniversary, beautiful wallpaper, surprise, age, new, present, concept, christmas, new year, figure, background",
-    "duration": 22,
-    "license": "Pixabay Content License"
+    "tags": "candle, none, birthday, celebration, burning, fire, light, culture, traditional, cake, fun, happiness, anniversary, surprise, age, new, present, concept, christmas, new year, figure, background",
+    "license": "Pixabay Content License",
+    "variant": "large",
+    "width": 2730,
+    "height": 1440,
+    "size_bytes": 1978879
   },
   "pixabay_10822.mp4": {
     "provider": "Pixabay",
@@ -14,7 +17,10 @@
     "page_url": "https://pixabay.com/videos/id-10822/",
     "creator": "Coverr-Free-Footage",
     "tags": "keyboard, typing, writing, notebook, computer, technology, laptop, business, internet, work, office, person, hand, communication, working, using, connection, pc, information, desktop, web, workplace",
-    "duration": 12,
-    "license": "Pixabay Content License"
+    "license": "Pixabay Content License",
+    "variant": "large",
+    "width": 1920,
+    "height": 1080,
+    "size_bytes": 7266383
   }
 }
