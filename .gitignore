@@ -1,0 +1,47 @@
+
+# Python environment and cache
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Downloaded AI models
+models/
+*.onnx
+*.gguf
+*.safetensors
+*.bin
+
+# Video and audio assets
+assets/footage/
+input/
+output/
+*.mp4
+*.mov
+*.wav
+*.mp3
+*.mkv
+
+# Generated catalogues
+assets/footage_catalog.json
+
+# API keys and authentication
+.env
+.env.*
+!.env.example
+credentials.json
+client_secret*.json
+token.json
+*.token
+secrets/
+
+# Logs and temporary files
+*.log
+temp/
+tmp/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
