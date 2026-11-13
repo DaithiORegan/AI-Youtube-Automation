@@ -47,3 +47,11 @@ Thumbs.db
 
 
 assets/music/
+
+# Local studio work, tool bundles and package outputs
+projects/
+tools/
+build/
+dist/
+*.egg-info/
+artifacts/

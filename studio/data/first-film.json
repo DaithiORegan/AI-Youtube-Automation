@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "fiction": true,
+  "title": "The Parcel That Spoke in Her Own Voice",
+  "premise": "A courier who hears forgotten promises receives a delivery from her own childhood.",
+  "character_bible": "Mara: 28-year-old woman, dark brown bob haircut, warm brown eyes, small scar through left eyebrow, moss-green knee-length coat, rust-orange scarf, brown leather courier satchel. Keep the same face, age, costume and hair in every shot. Brother: 31-year-old lean man, short dark brown hair, charcoal work jacket, no facial hair. Original fictional characters; no celebrity likeness.",
+  "style_bible": "Original cinematic storybook illustration, expressive faces, elegant ink contours, painterly textured backgrounds, warm amber highlights against cool teal shadows, dramatic motivated lighting, thoughtful composition, clear silhouettes, no captions, no letters, no logos, no watermark.",
+  "description": "An original fictional story about a courier, a forgotten promise and an overdue confession.",
+  "target_seconds": 75,
+  "settings": {
+    "ollama_url": "http://127.0.0.1:11434",
+    "model": "qwen3:4b",
+    "comfy_url": "http://127.0.0.1:8188",
+    "checkpoint": "sd_xl_base_1.0.safetensors",
+    "voice": "af_heart",
+    "speed": 1.0,
+    "seed": 41721,
+    "image_width": 1344,
+    "image_height": 768,
+    "steps": 24,
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
+    "crf": 18,
+    "preset": "medium",
+    "music": null,
+    "music_rights": "",
+    "checkpoint_rights_reviewed": false,
+    "voice_rights_reviewed": false,
+    "burn_captions": false
+  },
+  "scenes": [
+    {
+      "id": 1,
+      "beat": "hook",
+      "narration": "The parcel spoke in Mara\u2019s voice. Not her voice today. Her voice as a child, promising never to leave someone behind.",
+      "image_prompt": "Close-up of Mara, a young courier in a moss-green coat and rust-orange scarf, frozen on rain-dark stone steps, holding a small plain wooden box near her ear, startled expression, warm window light, no text.",
+      "camera": "pull"
+    },
+    {
+      "id": 2,
+      "beat": "setup",
+      "narration": "Every lost object carried its owner\u2019s last promise. Mara delivered them for a living. She had never heard one of her own.",
+      "image_prompt": "Medium shot of Mara in her small courier workshop, shelves of lost keys and worn toys, her empty delivery satchel on the bench, the wooden box glowing softly in window light.",
+      "camera": "left"
+    },
+    {
+      "id": 3,
+      "beat": "escalation",
+      "narration": "Inside was the blue ribbon she had tied around her brother\u2019s wrist. He had disappeared during the flood twelve years earlier.",
+      "image_prompt": "Over-shoulder close shot of Mara opening a plain wooden box, a faded blue cloth ribbon inside, her hands still, rain reflected in a nearby window, intimate warm light.",
+      "camera": "right"
+    },
+    {
+      "id": 4,
+      "beat": "escalation",
+      "narration": "The return address took her beneath the old bridge. She found a locked room, a lantern, and a man who recognised her scarf.",
+      "image_prompt": "Wide cinematic shot beneath an old stone bridge after rain, Mara approaching a small wooden door with lantern light, a lean adult man in a charcoal work jacket emerging, quiet tension.",
+      "camera": "push"
+    },
+    {
+      "id": 5,
+      "beat": "reversal",
+      "narration": "Her brother had survived. But the voice was not asking Mara to find him. It was asking her to stop hiding what she remembered.",
+      "image_prompt": "Two-shot of Mara and her adult brother beneath the stone bridge, the man holding a repaired lantern, Mara looking down at the blue ribbon, expressions showing painful recognition rather than triumph.",
+      "camera": "pull"
+    },
+    {
+      "id": 6,
+      "beat": "escalation",
+      "narration": "She had let go of his hand to save herself. For twelve years, she had called that moment an accident. Now she finally told him.",
+      "image_prompt": "Close-up of Mara speaking through tears, holding the ribbon loosely with open palms, her brother listening without smiling, muted rain behind them, soft lantern lighting.",
+      "camera": "left"
+    },
+    {
+      "id": 7,
+      "beat": "payoff",
+      "narration": "He did not forgive her that night. But when she left, he asked her to come back tomorrow. For once, Mara made a promise she could keep.",
+      "image_prompt": "Dawn wide shot of Mara walking away from the bridge toward a quiet town, her brother standing in the open doorway behind her, two cups on the doorstep, hopeful restrained ending, warm sunrise.",
+      "camera": "right"
+    }
+  ]
+}

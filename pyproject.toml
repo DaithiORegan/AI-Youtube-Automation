@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "storyforge-local-studio"
+version = "0.2.0"
+description = "Local illustrated-fiction production with reviewable quality gates"
+requires-python = ">=3.11,<3.14"
+dependencies = ["requests>=2.32,<3", "Pillow>=11,<13", "numpy>=1.26,<3", "soundfile>=0.13,<1"]
+
+[project.optional-dependencies]
+voice = ["kokoro-onnx>=0.4,<1"]
+legacy = ["faster-whisper>=1.1,<2", "python-dotenv>=1,<2"]
+test = ["pytest>=8,<10"]
+
+[project.scripts]
+storyforge = "studio.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["studio*"]
+
+[tool.setuptools.package-data]
+studio = ["web/*", "data/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -182,27 +182,7 @@ def main():
         )
 
         if source is None:
-            print(
-                f"Scene {index + 1}: Dark fallback"
-            )
-
-            inputs.extend([
-                "-f", "lavfi",
-                "-i",
-                (
-                    "color=c=0x101820:"
-                    f"s={WIDTH}x{HEIGHT}:r={FPS}"
-                )
-            ])
-
-            video_filter = (
-                f"[{index}:v]"
-                f"fps={FPS},"
-                f"trim=duration={seconds:.6f},"
-                "setpts=PTS-STARTPTS,"
-                "format=yuv420p"
-                f"[v{index}]"
-            )
+            raise ValueError(f"Scene {index + 1} has no valid footage; source it before rendering. Dark fallbacks are disabled.")
 
         else:
             print(
